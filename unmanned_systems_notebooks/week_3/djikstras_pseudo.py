@@ -36,6 +36,10 @@ step 3: build djikstras:
         #put in visited
         visited[current_index] = current_node
         
+        #check if we have reached the goial point if so run function to return path
+        if current_node.position == goal_position:
+            return path
+        
         ## loop through all moves:
             
             new_position = current_position + move
@@ -51,23 +55,23 @@ step 3: build djikstras:
             
             ## if it passes all three checks we have a legal move
             ## calculate temp node:
-                
-                distance 
-                cost 
-                parent
+                parent_index = current node index
                 temp_node = Node(new_position_x, new_position_y
                                  cost, parent_index)
+                
                 #find temp node index
                 temp_node_index = find_index()
                 
-                #insert temp node inside the open_set:
-                open_set[temp_node_index] = temp_node
+                #check if in open set
+                if temp_node_index in open set:
+                    #check unvisited node cost 
+                    if open_set[temp_node_index].cost > temp_node.cost:
+                        open_set[temp_node_index].cost = temp_node.cost
+                        open_set[temp_node_index].index = parent_index
                 
+                if temp_node_index not in open_set:                   
+                    #insert temp node inside the open_set:
+                    open_set[temp_node_index] = temp_node
                 
-    
-        
-        
-    
-
 
 """ 

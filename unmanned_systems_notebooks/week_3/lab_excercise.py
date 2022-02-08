@@ -22,6 +22,7 @@ Lab 3 Excerise
 
 import numpy as np
 from math import dist
+import matplotlib.pyplot as plt
 
 class Node():
     def __init__(self, x,y, cost, index):
@@ -36,7 +37,11 @@ class Turtle():
         self.move_list = [[step_size,0], #move left
                           [-step_size,0], #move right 
                           [0,step_size], #move up
-                          [0,-step_size] #move down
+                          [0,-step_size], #move down
+                          [step_size, step_size],
+                          [step_size, -step_size],
+                          [-step_size, step_size],
+                          [-step_size, -step_size]
                           ]
         
         self.visited_history = {}
@@ -126,49 +131,82 @@ def compute_distance(current_pos, another_pos):
     """compute distance"""
     return dist(current_pos, another_pos)
         
+def return_path(current_node, turtle):
+    path = []
+    current = current_node
+    
+    while current.index != -1:
+        #print("appending", current.index)
+        #print("current index", current.index)
+        path.append([current.x,current.y])
+        current = turtle.visited_history[current.index]
+    # Return reversed path as we need to show from start to end path
+    path = path[::-1]
+    start_value = 0
+    waypoints = []
+    for points in path:
+        waypoints.append(points)
+        
+    return waypoints
+
 if __name__=='__main__':
     #set up parameters
-    x_span = [0,5]
-    y_span = [0,5]
+    x_span = [0,10]
+    y_span = [0,10]
     spacing = 0.5
     
     
 #%% ##### BUILD WORLD
     configSpace = ConfigSpace(x_span, y_span, spacing)
     configSpace.set_graph_coords()
-    
-    enemy_list = [[1,2], [4,3]]
+    #(1,1), (4,4), (3,4), (5,0), (5,1), (0,7), (1,7), (2,7), and (3,7)
+    enemy_list = [[1,1], [4,4], [3,4], [5,0], [5,1], [0,7], [1,7], [2,7], [3,7]]
     configSpace.set_obstacles(enemy_list)
     
     obstacle_radius = 0.5
     
 #%% Build Turtlebot
     turtle = Turtle(0,0,spacing)
-    goal_position = [5,3]
+    goal_position = [8,9]
 
     current_node = Node(turtle.position[0], turtle.position[1], 0, -1)
-    current_index = configSpace.calc_index(turtle.position)
-    turtle.not_visited[current_index] = current_node
+    current_node_index = configSpace.calc_index(turtle.position)
+    turtle.not_visited[current_node_index ] = current_node
     
     while [current_node.x, current_node.y] != goal_position:
     
         current_node_index = min(turtle.not_visited, key=lambda x:turtle.not_visited[x].cost)
         current_node = turtle.not_visited[current_node_index]
         turtle.position = [current_node.x, current_node.y]
-        
-        if [current_node.x, current_node.y]  == goal_position:
-            print("I've arrived!", current_node.x, current_node.y)
-            break
-        
+
         print("turtle position is", turtle.position)
         turtle.visited_history[current_node_index] = current_node
         del turtle.not_visited[current_node_index]
+    
+        if [current_node.x, current_node.y]  == goal_position:
+            ## have method to return path
+            print("I've arrived!", current_node.x, current_node.y)
+            waypoints = return_path(current_node, turtle)
+            
+            #plot the waypoints
+            x_list = [x[0] for x in waypoints]
+            y_list = [y[1] for y in waypoints]
+            plt.plot(x_list, y_list)
+            
+            for obstacle in enemy_list:
+                plt.scatter(obstacle[0], obstacle[1])
+            
+            break
     
         for move in turtle.move_list:
             new_position = [turtle.position[0] + move[0], 
                             turtle.position[1] +move[1]]
             
-            #check out of bounds
+            print("new position", new_position)
+            cost = current_node.cost + compute_distance(new_position, turtle.position)
+            new_node = Node(new_position[0], new_position[1], cost, current_node_index)
+            new_index = configSpace.calc_index(new_position)
+
             if configSpace.check_out_bounds(new_position, x_span, y_span) == True:
                 print("you are out of bounds", new_position)
                 continue
@@ -176,24 +214,19 @@ if __name__=='__main__':
             #check within obstacle
             if configSpace.check_within_obstacle(
                     enemy_list, new_position, obstacle_radius) == True:
-                obstacle_index = configSpace.calc_index(new_position)
-                turtle.obstacle_location[obstacle_index] = new_position
-                print("you are within an enemy, teleporting ahead", new_position)
-                
-                new_position = turtle.teleport(new_position)
-                
-                
-            new_index = configSpace.calc_index(new_position)
-            #check if already visited 
+                continue 
+            
+
             if new_index in turtle.visited_history:
                 continue
-                
-            #def __init__(self, x,y, parent_cost, index)
-            greedy_cost = compute_distance(new_position, goal_position)
-            new_node = Node(new_position[0], new_position[1], greedy_cost, current_node.index)
             
+            if new_index in turtle.not_visited:
+                if turtle.not_visited[new_index].cost > cost:
+                    turtle.not_visited[new_index].cost  = cost
+                    turtle.not_visited[new_index].index = current_node.index
             
-            turtle.not_visited[new_index] = new_node
+            if new_index not in turtle.not_visited:           
+                turtle.not_visited[new_index] = new_node
             
         
         
